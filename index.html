@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MathQuest: Pembagian Hologram</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --glow-color: #0ea5e9;
+            --bg-color: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.85);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        h1, h2, h3, .orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Futuristic Background */
+        .circuit-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-image: 
+                linear-gradient(rgba(2, 6, 23, 0.15), rgba(2, 6, 23, 0.35)),
+                url('https://iili.io/nlzc3Ge.md.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2;
+        }
+
+        .glow-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at 80% 50%, transparent 30%, rgba(2, 6, 23, 0.85) 90%);
+            z-index: -1;
+        }
+
+        /* Hologram Panels */
+        .hologram-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--glow-color);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.3), inset 0 0 20px rgba(14, 165, 233, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hologram-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: scanline 4s infinite linear;
+        }
+
+        /* Buttons */
+        .btn-glow {
+            background: linear-gradient(135deg, #1e3a8a, #0369a1);
+            border: 1px solid var(--glow-color);
+            box-shadow: 0 0 10px var(--glow-color);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .btn-glow:hover:not(:disabled) {
+            box-shadow: 0 0 25px #38bdf8, inset 0 0 10px #38bdf8;
+            transform: translateY(-2px) scale(1.02);
+            text-shadow: 0 0 5px white;
+        }
+
+        .btn-glow:active:not(:disabled) {
+            transform: translateY(1px) scale(0.98);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #7f1d1d, #991b1b);
+            border: 1px solid #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .btn-danger:hover {
+            box-shadow: 0 0 25px #f87171, inset 0 0 10px #f87171;
+            transform: translateY(-2px) scale(1.02);
+        }
+
+        /* Animations */
+        @keyframes scanline {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.8; box-shadow: 0 0 15px var(--glow-color); }
+            50% { opacity: 1; box-shadow: 0 0 30px var(--glow-color); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-2deg); }
+            50% { transform: translateX(5px) rotate(2deg); }
+            75% { transform: translateX(-5px) rotate(-2deg); }
+        }
+
+        .floating { animation: float 3s ease-in-out infinite; }
+        .pulsing { animation: pulse-glow 2s infinite; }
+        .shaking { animation: shake 0.4s ease-in-out; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--glow-color); border-radius: 4px; }
+
+        /* Draggable / Match Items */
+        .match-item {
+            border: 1px dashed var(--glow-color);
+            background: rgba(14, 165, 233, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .match-item.selected {
+            background: rgba(14, 165, 233, 0.4);
+            border: 1px solid #fff;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        /* Timer Circle */
+        .timer-circle {
+            transition: stroke-dashoffset 1s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Elements -->
+    <div class="circuit-bg"></div>
+    <div class="glow-overlay"></div>
+
+    <!-- Main Application Container -->
+    <div id="app" class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center p-4">
+        <!-- Content will be injected here by JS -->
+    </div>
+
+    <!-- Admin Access Trigger (Top Left Corner) -->
+    <button id="admin-trigger" class="fixed top-4 left-4 z-50 text-slate-400 hover:text-sky-400 transition-all bg-slate-900/60 p-3 rounded-full border border-slate-700 hover:border-sky-500 hover:shadow-[0_0_15px_rgba(14,165,233,0.5)] backdrop-blur-md group flex items-center justify-center w-10 h-10 md:w-12 md:h-12" onclick="app.navigate('admin-login')" title="Pengaturan Sistem">
+        <i class="fas fa-cog text-lg md:text-xl group-hover:rotate-180 transition-transform duration-500"></i>
+    </button>
+
+    <script>
+        // ==========================================
+        // KONFIGURASI DATABASE GOOGLE SHEETS
+        // ==========================================
+        const CONFIG = {
+            // PASTE URL WEB APP APPSCRIPT ANDA DI BAWAH INI:
+            APP_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby-eeSChed-QYWXfFl2bK8gcI04iZWKbGTMdxVunMidfoQ5u3tHZRAKUPkf9o_ikW4/exec' 
+        };
+        // ==========================================
+
+        const defaultDB = {
+            materi: [
+                {
+                    title: "2 Digit ÷ 1 Digit",
+                    concept: "Membagi bilangan puluhan dengan satuan.",
+                    example: "48 ÷ 2 = ?",
+                    steps: [
+                        "Bagi angka puluhan: 4 ÷ 2 = 2 (tulis 2).",
+                        "Bagi angka satuan: 8 ÷ 2 = 4 (tulis 4).",
+                        "Gabungkan hasilnya: 24."
+                    ],
+                    practice: { q: "69 ÷ 3", a: "23" }
+                },
+                {
+                    title: "3 Digit ÷ 1 Digit",
+                    concept: "Membagi bilangan ratusan dengan satuan menggunakan pembagian bersusun (Porogapit).",
+                    example: "486 ÷ 2 = ?",
+                    steps: [
+                        "Ratusan: 4 ÷ 2 = 2.",
+                        "Puluhan: 8 ÷ 2 = 4.",
+                        "Satuan: 6 ÷ 2 = 3.",
+                        "Hasilnya: 243."
+                    ],
+                    practice: { q: "844 ÷ 4", a: "211" }
+                },
+                {
+                    title: "4 Digit ÷ 1 Digit",
+                    concept: "Membagi bilangan ribuan.",
+                    example: "5248 ÷ 4 = ?",
+                    steps: [
+                        "5 ÷ 4 = 1 (sisa 1).",
+                        "Turunkan 2 jadi 12. 12 ÷ 4 = 3.",
+                        "4 ÷ 4 = 1.",
+                        "8 ÷ 4 = 2.",
+                        "Hasilnya: 1312."
+                    ],
+                    practice: { q: "6396 ÷ 3", a: "2132" }
+                },
+                {
+                    title: "5 Digit ÷ 1 Digit",
+                    concept: "Membagi bilangan puluh ribuan. Teliti dan lakukan selangkah demi selangkah!",
+                    example: "12550 ÷ 5 = ?",
+                    steps: [
+                        "1 tidak bisa dibagi 5, gabung angka berikutnya: 12.",
+                        "12 ÷ 5 = 2 (sisa 2).",
+                        "Gabung sisa 2 dengan 5: 25 ÷ 5 = 5.",
+                        "5 ÷ 5 = 1.",
+                        "0 ÷ 5 = 0.",
+                        "Hasil: 2510."
+                    ],
+                    practice: { q: "18600 ÷ 6", a: "3100" }
+                }
+            ],
+            kuis: [
+                // 4 Pilihan Ganda
+                { id: 1, type: "mcq", q: "Hasil dari 84 ÷ 4 adalah...", options: ["21", "22", "24", "12"], ans: "21" },
+                { id: 2, type: "mcq", q: "Sebuah toko membagikan 369 buku kepada 3 panti asuhan. Berapa buku yang diterima tiap panti?", options: ["120", "123", "133", "113"], ans: "123" },
+                { id: 3, type: "mcq", q: "Hasil dari 4824 ÷ 2 = ...", options: ["2412", "2422", "2402", "2212"], ans: "2412" },
+                { id: 4, type: "mcq", q: "Hasil dari 15075 ÷ 5 = ...", options: ["3015", "3115", "3005", "3051"], ans: "3015" },
+                // 3 Pilihan Ganda Kompleks (Pilih pernyataan yang benar)
+                { id: 5, type: "complex", q: "Pilih 2 pernyataan yang BENAR mengenai pembagian berikut:", options: ["96 ÷ 3 = 32", "124 ÷ 4 = 30", "555 ÷ 5 = 111", "100 ÷ 5 = 25"], ans: ["96 ÷ 3 = 32", "555 ÷ 5 = 111"] },
+                { id: 6, type: "complex", q: "Mana dari operasi berikut yang hasilnya lebih dari 1000? (Pilih 2)", options: ["8000 ÷ 4", "2500 ÷ 5", "3333 ÷ 3", "900 ÷ 9"], ans: ["8000 ÷ 4", "3333 ÷ 3"] },
+                { id: 7, type: "complex", q: "Pernyataan mana yang salah? (Pilih 2)", options: ["48 ÷ 2 = 24", "100 ÷ 4 = 20", "606 ÷ 6 = 11", "500 ÷ 2 = 250"], ans: ["100 ÷ 4 = 20", "606 ÷ 6 = 11"] },
+                // 3 Drag & Drop (Diimplementasikan sebagai Matching Game)
+                { id: 8, type: "match", q: "Pasangkan soal dengan jawaban yang tepat!", pairs: [{q: "75 ÷ 3", a: "25"}, {q: "120 ÷ 4", a: "30"}, {q: "400 ÷ 8", a: "50"}] },
+                { id: 9, type: "match", q: "Pasangkan bilangan 4 digit ini!", pairs: [{q: "1000 ÷ 2", a: "500"}, {q: "2400 ÷ 6", a: "400"}, {q: "8100 ÷ 9", a: "900"}] },
+                { id: 10, type: "match", q: "Tantangan 5 Digit! Pasangkan:", pairs: [{q: "10000 ÷ 2", a: "5000"}, {q: "15000 ÷ 3", a: "5000"}, {q: "20000 ÷ 5", a: "4000"}] }
+            ],
+            game: [
+                { mission: 1, title: "Misi 1: Level Puluhan", questions: [
+                    { q: "Sebuah pesawat luar angkasa membutuhkan 96 sel energi yang dibagi ke 3 mesin. Berapa sel untuk tiap mesin? (96 ÷ 3)", a: "32" },
+                    { q: "Sistem navigasi mendeteksi 84 meteor. Laser penangkis menembak dalam 4 arah sama rata. Berapa meteor per arah? (84 ÷ 4)", a: "21" },
+                    { q: "Awak kapal berjumlah 75 orang dibagi ke dalam 5 kapsul evakuasi. Berapa orang per kapsul? (75 ÷ 5)", a: "15" }
+                ]},
+                { mission: 2, title: "Misi 2: Level Ratusan", questions: [
+                    { q: "Kode sandi gerbang sektor beta: 864 ÷ 4. Masukkan kodenya!", a: "216" },
+                    { q: "Cadangan oksigen 639 liter akan disalurkan ke 3 blok kabin utama. Liter per kabin? (639 ÷ 3)", a: "213" },
+                    { q: "525 paket ransum dibagikan merata untuk 5 hari perjalanan. Ransum per hari? (525 ÷ 5)", a: "105" }
+                ]},
+                { mission: 3, title: "Misi 3: Level Ribuan", questions: [
+                    { q: "Radar mendeteksi 4550 asteroid. Senjata penembak membaginya menjadi 5 gelombang. Berapa asteroid per gelombang? (4550 ÷ 5)", a: "910" },
+                    { q: "Bahan bakar roket 2484 galon dialirkan ke 4 pendorong utama. Berapa galon per pendorong? (2484 ÷ 4)", a: "621" },
+                    { q: "Jarak stasiun transit 8163 km, ditempuh dalam 3 etape. Jarak per etape? (8163 ÷ 3)", a: "2721" }
+                ]},
+                { mission: 4, title: "Misi 4: Level Puluh Ribuan", questions: [
+                    { q: "Jarak ke planet tujuan 24800 tahun cahaya. Kapal membaginya dalam 8 lompatan warp. Jarak per lompatan? (24800 ÷ 8)", a: "3100" },
+                    { q: "Data sistem memori sebesar 15075 terabyte didekripsi oleh 5 inti prosesor. Berapa data per prosesor? (15075 ÷ 5)", a: "3015" },
+                    { q: "Muatan kargo bernilai 42060 kredit galaksi dibagi rata ke 6 brankas. Kredit per brankas? (42060 ÷ 6)", a: "7010" }
+                ]},
+                { mission: 5, title: "Misi 5: Level Lanjutan", questions: [
+                    { q: "Suhu inti reaktor memanas! Kurangi beban 75000 kelvin menggunakan 5 saluran pendingin. Beban per saluran? (75000 ÷ 5)", a: "15000" },
+                    { q: "Perisai plasma membutuhkan 96048 megawatt yang disuplai dari 4 generator. Suplai per generator? (96048 ÷ 4)", a: "24012" },
+                    { q: "Kecepatan cahaya hiper-drive 88088 parsec dibagi ke 8 selang waktu warp. Parsec per selang waktu? (88088 ÷ 8)", a: "11011" }
+                ]},
+                { mission: 6, title: "FINAL BOSS: Penyelamat Galaksi", isBoss: true, questions: [
+                    { q: "KRITIS! Lubang hitam mendekat. Aktifkan penangkal antimateri dengan mengkalkulasi kode 6 digit: 642084 unit energi dibagi ke 4 dimensi paralel! Berapa unit per dimensi? (642084 ÷ 4)", a: "160521" }
+                ]}
+            ]
+        };
+
+        // Mengambil DB dari localStorage, atau gunakan bawaan jika belum ada
+        let DB = JSON.parse(localStorage.getItem('mathquest_db')) || defaultDB;
+
+        const state = {
+            currentScreen: 'dashboard',
+            materiStep: 0,
+            kuisAnswers: {},
+            kuisStep: 0,
+            studentName: '',
+            studentClass: '',
+            isKuisStarted: false,
+            gameLives: 3,
+            gameMission: 0,
+            gameSubQuestion: 0,
+            bossTimer: null,
+            bossTimeLeft: 90,
+            adminTab: 'history'
+        };
+
+        const appContainer = document.getElementById('app');
+
+        const app = {
+            navigate: (screen) => {
+                state.currentScreen = screen;
+                app.render();
+            },
+            render: () => {
+                appContainer.innerHTML = '';
+                appContainer.style.opacity = 0;
+                
+                const adminBtn = document.getElementById('admin-trigger');
+                if(adminBtn) {
+                    if (state.currentScreen === 'admin-login' || state.currentScreen === 'admin-panel') {
+                        adminBtn.classList.add('hidden');
+                    } else {
+                        adminBtn.classList.remove('hidden');
+                    }
+                }
+                
+                setTimeout(() => {
+                    switch(state.currentScreen) {
+                        case 'dashboard': renderDashboard(); break;
+                        case 'materi': renderMateri(); break;
+                        case 'kuis': renderKuis(); break;
+                        case 'game': renderGame(); break;
+                        case 'admin-login': renderAdminLogin(); break;
+                        case 'admin-panel': renderAdminPanel(); break;
+                    }
+                    appContainer.style.transition = "opacity 0.5s ease-in-out";
+                    appContainer.style.opacity = 1;
+                }, 100);
+            }
+        };
+
+        const getSantriSVG = () => `
+            <img src="https://iili.io/nls4B0G.md.png" 
+                 alt="Karakter Game" 
+                 class="w-32 h-32 md:w-40 md:h-40 floating mx-auto object-contain drop-shadow-[0_0_15px_rgba(56,189,248,0.7)]" 
+                 onerror="this.onerror=null; this.src='https://placehold.co/160x160/0ea5e9/ffffff?text=Hero'">`;
+
+        const getSantriwatiSVG = () => getSantriSVG();
+
+        const getBossSVG = () => `
+            <svg viewBox="0 0 100 100" class="w-48 h-48 pulsing mx-auto" id="boss-svg">
+                <polygon points="50,10 90,40 90,90 10,90 10,40" fill="#0f172a" stroke="#ef4444" stroke-width="3"/>
+                <circle cx="35" cy="45" r="8" fill="#ef4444" class="pulsing"/>
+                <circle cx="65" cy="45" r="8" fill="#ef4444" class="pulsing"/>
+                <path d="M 30 70 L 70 70 L 60 80 L 40 80 Z" fill="#ef4444"/>
+                <text x="32" y="30" font-family="Orbitron" fill="white" font-size="12">ERROR</text>
+            </svg>
+        `;
+
+        function renderDashboard() {
+            const html = `
+                <div class="fixed bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-xl hologram-panel p-3 md:p-4 text-center shadow-2xl z-20 backdrop-blur-md border border-sky-500/40">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-3 pb-2 border-b border-sky-800/50 gap-2">
+                        <div class="text-center sm:text-left">
+                            <h1 class="text-xl md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]">
+                                MATHQUEST
+                            </h1>
+                            <h2 class="text-[10px] md:text-xs text-sky-200 orbitron tracking-wider uppercase">
+                                Pembagian Hologram
+                            </h2>
+                        </div>
+                        <div class="hidden sm:flex items-center gap-2 text-[10px] md:text-xs text-sky-400/80 bg-slate-900/60 px-2.5 py-1 rounded-full border border-sky-900">
+                            <i class="fas fa-microchip"></i>
+                            <span>Sistem Siap</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 md:gap-3 w-full">
+                        <button onclick="app.navigate('materi')" class="btn-glow flex items-center justify-center p-2.5 md:p-3 rounded-lg group relative overflow-hidden">
+                            <i class="fas fa-book-open text-base mr-2 text-sky-300 group-hover:text-white transition-colors"></i>
+                            <span class="text-xs md:text-sm">Materi Ajar</span>
+                        </button>
+                        
+                        <button onclick="app.navigate('kuis')" class="btn-glow flex items-center justify-center p-2.5 md:p-3 rounded-lg group relative overflow-hidden">
+                            <i class="fas fa-tasks text-base mr-2 text-sky-300 group-hover:text-white transition-colors"></i>
+                            <span class="text-xs md:text-sm">Kuis Evaluasi</span>
+                        </button>
+                        
+                        <button onclick="app.navigate('game')" class="btn-glow flex items-center justify-center p-2.5 md:p-3 rounded-lg group relative overflow-hidden">
+                            <i class="fas fa-gamepad text-base mr-2 text-sky-300 group-hover:text-white transition-colors"></i>
+                            <span class="text-xs md:text-sm">Misi Game</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            appContainer.innerHTML = html;
+        }
+
+        function renderMateri() {
+            const data = DB.materi[state.materiStep];
+            const isLast = state.materiStep === DB.materi.length;
+
+            if (isLast) {
+                appContainer.innerHTML = `
+                    <div class="hologram-panel p-8 max-w-2xl w-full text-center mx-auto">
+                        <i class="fas fa-check-circle text-6xl text-green-400 mb-4 pulsing"></i>
+                        <h2 class="text-3xl font-bold mb-4 text-sky-300 orbitron">Materi Selesai!</h2>
+                        <p class="text-xl mb-8">Kamu telah mempelajari pembagian 2 hingga 5 digit. Kerja yang sangat bagus!</p>
+                        <button onclick="state.materiStep=0; app.navigate('dashboard')" class="btn-glow py-3 px-8 rounded-full text-lg w-full md:w-auto">
+                            <i class="fas fa-home mr-2"></i> KEMBALI KE BERANDA
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            let stepsHTML = data.steps.map((step, i) => `
+                <div class="flex items-start mb-3 bg-slate-800/50 p-3 rounded border border-sky-900">
+                    <span class="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center mr-3 font-bold shrink-0 shadow-[0_0_8px_#0ea5e9]">${i+1}</span>
+                    <p class="text-lg leading-relaxed text-sky-100 pt-1">${step}</p>
+                </div>
+            `).join('');
+
+            appContainer.innerHTML = `
+                <div class="w-full max-w-5xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="app.navigate('dashboard')" class="text-sky-400 hover:text-white transition flex items-center bg-slate-900/50 px-4 py-2 rounded-full border border-sky-900"><i class="fas fa-arrow-left mr-2"></i>Beranda</button>
+                        <div class="flex gap-2 bg-slate-900/50 p-2 rounded-full border border-sky-900">
+                            ${DB.materi.map((_, idx) => `<div class="h-3 w-10 md:w-16 rounded-full transition-all duration-300 ${idx <= state.materiStep ? 'bg-sky-400 shadow-[0_0_8px_#38bdf8]' : 'bg-slate-700'}"></div>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="hologram-panel p-6 md:p-10 w-full mb-6 relative">
+                        <h2 class="text-2xl md:text-4xl font-bold text-sky-300 mb-2 orbitron border-b border-sky-800/50 pb-4">${data.title}</h2>
+                        <p class="text-lg text-slate-300 mb-8 mt-4">${data.concept}</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl text-sky-400 mb-4 pb-2 font-bold"><i class="fas fa-chalkboard-teacher mr-2"></i>Contoh Soal</h3>
+                                <div class="bg-blue-900/40 p-4 rounded-xl border border-blue-700 text-center text-4xl font-bold mb-6 font-mono shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] tracking-widest text-white">
+                                    ${data.example}
+                                </div>
+                                <div class="text-left space-y-2">
+                                    ${stepsHTML}
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col justify-center h-full">
+                                <div class="hologram-panel p-8 border-sky-500/50 text-center mt-4 md:mt-0 bg-slate-900/80 shadow-[0_0_30px_rgba(14,165,233,0.15)]" id="practice-box">
+                                    <h3 class="text-xl text-sky-300 mb-4 font-bold"><i class="fas fa-pencil-alt mr-2"></i>Latihan Singkat</h3>
+                                    <p class="text-3xl font-bold mb-6 font-mono text-white">${data.practice.q} = ?</p>
+                                    <input type="number" id="practice-input" class="w-full bg-slate-950 border-2 border-sky-500 rounded-lg p-4 text-3xl text-center text-white focus:outline-none focus:border-sky-300 focus:shadow-[0_0_15px_#38bdf8] mb-6 transition-all" placeholder="...">
+                                    <button onclick="checkPractice('${data.practice.a}')" class="btn-glow py-3 px-6 rounded-lg w-full text-xl">CEK JAWABAN</button>
+                                    <div id="practice-feedback" class="mt-6 text-xl hidden font-bold h-8 flex items-center justify-center"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button id="next-materi-btn" onclick="nextMateri()" class="btn-glow py-4 px-10 rounded-full text-xl opacity-50 cursor-not-allowed" disabled>
+                            LANJUTKAN <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.checkPractice = (correctAnswer) => {
+            const input = document.getElementById('practice-input').value;
+            const feedback = document.getElementById('practice-feedback');
+            const nextBtn = document.getElementById('next-materi-btn');
+            
+            feedback.classList.remove('hidden');
+            if (input === correctAnswer) {
+                feedback.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2 text-2xl"></i> Tepat Sekali!';
+                feedback.className = "mt-6 text-xl font-bold text-green-400 h-8 flex items-center justify-center";
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextBtn.classList.add('pulsing', 'shadow-[0_0_20px_#0ea5e9]');
+                document.getElementById('practice-input').disabled = true;
+            } else {
+                feedback.innerHTML = '<i class="fas fa-times-circle text-red-400 mr-2 text-2xl"></i> Coba lagi yuk!';
+                feedback.className = "mt-6 text-xl font-bold text-red-400 h-8 flex items-center justify-center";
+            }
+        };
+
+        window.nextMateri = () => {
+            state.materiStep++;
+            app.navigate('materi');
+        };
+
+        window.startKuisQuiz = (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('input-student-name').value.trim();
+            const classInput = document.getElementById('input-student-class').value.trim();
+            if (!nameInput || !classInput) return;
+            
+            state.studentName = nameInput;
+            state.studentClass = classInput;
+            state.isKuisStarted = true;
+            state.kuisAnswers = {};
+            state.kuisStep = 0;
+            app.render();
+        };
+
+        function renderKuis() {
+            if (!state.isKuisStarted) {
+                appContainer.innerHTML = `
+                    <div class="hologram-panel p-6 md:p-8 max-w-lg w-full mx-auto relative shadow-[0_0_30px_rgba(14,165,233,0.2)]">
+                        <div class="flex justify-between items-center mb-6 border-b border-sky-800/50 pb-3">
+                            <h2 class="text-xl md:text-2xl font-bold text-sky-300 orbitron"><i class="fas fa-id-card mr-2 text-sky-400"></i>Identitas Peserta</h2>
+                            <button onclick="app.navigate('dashboard')" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-slate-300 mb-6 text-sm">Silakan masukkan nama lengkap dan kelas Anda untuk memulai Kuis Evaluasi.</p>
+                        
+                        <form onsubmit="startKuisQuiz(event)" class="space-y-5">
+                            <div>
+                                <label class="block text-sky-300 text-sm font-bold mb-2 orbitron"><i class="fas fa-user mr-2"></i>Nama Lengkap</label>
+                                <input type="text" id="input-student-name" required value="${state.studentName}" class="w-full bg-slate-950 border border-sky-500/70 rounded-xl p-3.5 text-base text-white focus:outline-none focus:border-sky-300 focus:shadow-[0_0_15px_#38bdf8] transition-all" placeholder="Contoh: Ahmad Raihan">
+                            </div>
+                            <div>
+                                <label class="block text-sky-300 text-sm font-bold mb-2 orbitron"><i class="fas fa-graduation-cap mr-2"></i>Kelas</label>
+                                <input type="text" id="input-student-class" required value="${state.studentClass}" class="w-full bg-slate-950 border border-sky-500/70 rounded-xl p-3.5 text-base text-white focus:outline-none focus:border-sky-300 focus:shadow-[0_0_15px_#38bdf8] transition-all" placeholder="Contoh: 5-A / Kelas 4">
+                            </div>
+                            <button type="submit" class="btn-glow py-3.5 px-8 rounded-xl text-lg font-bold w-full mt-6 shadow-lg flex items-center justify-center">
+                                <span>MULAI KUIS</span> <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </form>
+                    </div>
+                `;
+                return;
+            }
+
+            if (state.kuisStep >= DB.kuis.length) {
+                renderKuisResult();
+                return;
+            }
+
+            const q = DB.kuis[state.kuisStep];
+            const progress = ((state.kuisStep) / DB.kuis.length) * 100;
+
+            let interactionHTML = '';
+
+            if (q.type === 'mcq') {
+                interactionHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                        ${q.options.map((opt, i) => `
+                            <button onclick="selectKuisAnswer('${opt}')" class="kuis-opt text-left p-5 rounded-xl border-2 border-sky-800 bg-slate-800/60 hover:bg-sky-900/60 hover:border-sky-400 transition-all text-xl flex items-center">
+                                <span class="w-10 h-10 rounded-full bg-sky-950 flex justify-center items-center mr-4 border border-sky-500 font-bold shrink-0">${['A','B','C','D'][i]}</span>
+                                <span>${opt}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (q.type === 'complex') {
+                interactionHTML = `
+                    <div class="bg-blue-900/30 border border-blue-500/50 p-3 rounded-lg inline-block mb-6">
+                        <p class="text-sky-300 text-sm md:text-base font-bold"><i class="fas fa-info-circle mr-2"></i>Pilih 2 jawaban yang tepat dari opsi di bawah.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${q.options.map((opt, i) => `
+                            <label class="kuis-complex-opt flex items-center p-5 rounded-xl border-2 border-sky-800 bg-slate-800/60 cursor-pointer hover:bg-sky-900/60 hover:border-sky-400 transition-all">
+                                <input type="checkbox" value="${opt}" class="w-6 h-6 mr-4 accent-sky-500 rounded shrink-0" onchange="checkComplexSelection()">
+                                <span class="text-xl">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <button id="complex-submit-btn" onclick="submitComplexAnswer()" class="btn-glow mt-8 py-4 px-8 rounded-full w-full text-xl hidden transition-all">KONFIRMASI JAWABAN</button>
+                `;
+            } else if (q.type === 'match') {
+                interactionHTML = `
+                    <div class="bg-blue-900/30 border border-blue-500/50 p-3 rounded-lg inline-block mb-6">
+                        <p class="text-sky-300 text-sm md:text-base font-bold"><i class="fas fa-hand-pointer mr-2"></i>Ketuk soal di kotak kiri, lalu ketuk jawaban yang tepat di kotak kanan.</p>
+                    </div>
+                    <div class="flex justify-between gap-4 md:gap-8 mt-2" id="match-container">
+                        <div class="w-1/2 flex flex-col gap-4" id="match-left">
+                            <h4 class="text-center text-slate-400 text-sm uppercase tracking-wider mb-2">Soal</h4>
+                            ${shuffleArray([...q.pairs]).map(p => `<div class="match-item p-4 md:p-5 text-center text-xl md:text-2xl rounded-lg shadow font-mono select-none" data-type="q" data-val="${p.q}">${p.q}</div>`).join('')}
+                        </div>
+                        <div class="w-1/2 flex flex-col gap-4" id="match-right">
+                            <h4 class="text-center text-slate-400 text-sm uppercase tracking-wider mb-2">Jawaban</h4>
+                            ${shuffleArray([...q.pairs]).map(p => `<div class="match-item p-4 md:p-5 text-center text-xl md:text-2xl rounded-lg shadow font-mono select-none" data-type="a" data-val="${p.a}">${p.a}</div>`).join('')}
+                        </div>
+                    </div>
+                    <button id="match-submit-btn" onclick="submitMatchAnswer()" class="btn-glow mt-8 py-4 px-8 rounded-full w-full text-xl hidden transition-all">KONFIRMASI PASANGAN</button>
+                `;
+                setTimeout(initMatchLogic, 100);
+            }
+
+            appContainer.innerHTML = `
+                <div class="w-full max-w-4xl mx-auto">
+                    <div class="flex justify-between items-center mb-6 bg-slate-900/50 p-3 px-6 rounded-full border border-sky-900">
+                        <span class="text-sky-300 font-bold orbitron text-xl">SOAL ${state.kuisStep + 1} / ${DB.kuis.length}</span>
+                        <button onclick="confirmExitKuis()" class="text-slate-400 hover:text-red-400 transition flex items-center gap-2"><span class="hidden md:inline">Keluar</span> <i class="fas fa-times-circle text-2xl"></i></button>
+                    </div>
+                    
+                    <div class="w-full bg-slate-900 border border-slate-700 h-3 rounded-full mb-8 overflow-hidden shadow-inner">
+                        <div class="bg-sky-400 h-full shadow-[0_0_10px_#38bdf8] transition-all duration-500 rounded-full" style="width: ${progress}%"></div>
+                    </div>
+
+                    <div class="hologram-panel p-6 md:p-10 w-full relative min-h-[400px]">
+                        <h3 class="text-2xl md:text-3xl font-bold mb-8 text-white leading-relaxed border-b border-slate-700 pb-6">${q.q}</h3>
+                        ${interactionHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.confirmExitKuis = () => {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
+            overlay.innerHTML = `
+                <div class="hologram-panel p-8 text-center max-w-md w-full border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+                    <i class="fas fa-exclamation-triangle text-6xl text-yellow-400 mb-6 pulsing"></i>
+                    <h3 class="text-2xl font-bold mb-4 orbitron text-white">Keluar Kuis?</h3>
+                    <p class="mb-8 text-slate-300 text-lg">Progres kamu pada kuis ini akan hilang. Yakin ingin kembali ke beranda?</p>
+                    <div class="flex gap-4">
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 py-3 rounded-xl border border-sky-500 hover:bg-sky-900 transition text-lg font-bold">Batal</button>
+                        <button onclick="this.closest('.fixed').remove(); state.isKuisStarted=false; state.kuisStep=0; app.navigate('dashboard')" class="flex-1 btn-danger py-3 rounded-xl text-lg font-bold">Keluar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        };
+
+        window.selectKuisAnswer = (ans) => {
+            document.querySelectorAll('.kuis-opt').forEach(el => {
+                el.classList.remove('border-sky-300', 'bg-sky-700/60', 'shadow-[0_0_15px_rgba(56,189,248,0.5)]');
+                el.classList.add('border-sky-800', 'bg-slate-800/60');
+            });
+            event.currentTarget.classList.remove('border-sky-800', 'bg-slate-800/60');
+            event.currentTarget.classList.add('border-sky-300', 'bg-sky-700/60', 'shadow-[0_0_15px_rgba(56,189,248,0.5)]');
+            
+            setTimeout(() => {
+                state.kuisAnswers[state.kuisStep] = ans;
+                state.kuisStep++;
+                app.navigate('kuis');
+            }, 500); 
+        };
+
+        window.checkComplexSelection = () => {
+            const checked = document.querySelectorAll('.kuis-complex-opt input:checked');
+            const btn = document.getElementById('complex-submit-btn');
+            
+            document.querySelectorAll('.kuis-complex-opt').forEach(label => {
+                label.classList.remove('border-sky-300', 'bg-sky-900/60');
+                label.classList.add('border-sky-800', 'bg-slate-800/60');
+            });
+            checked.forEach(input => {
+                const label = input.closest('.kuis-complex-opt');
+                label.classList.remove('border-sky-800', 'bg-slate-800/60');
+                label.classList.add('border-sky-300', 'bg-sky-900/60');
+            });
+
+            if (checked.length === 2) {
+                btn.classList.remove('hidden');
+                document.querySelectorAll('.kuis-complex-opt input:not(:checked)').forEach(el => el.disabled = true);
+            } else {
+                btn.classList.add('hidden');
+                document.querySelectorAll('.kuis-complex-opt input').forEach(el => el.disabled = false);
+            }
+        };
+
+        window.submitComplexAnswer = () => {
+            const checked = Array.from(document.querySelectorAll('.kuis-complex-opt input:checked')).map(el => el.value);
+            state.kuisAnswers[state.kuisStep] = checked;
+            state.kuisStep++;
+            app.navigate('kuis');
+        };
+
+        window.initMatchLogic = () => {
+            let selectedQ = null;
+            let selectedA = null;
+            const matches = {}; 
+            const pairsCount = DB.kuis[state.kuisStep].pairs.length;
+            
+            const qItems = document.querySelectorAll('#match-left .match-item');
+            const aItems = document.querySelectorAll('#match-right .match-item');
+
+            const checkComplete = () => {
+                if (Object.keys(matches).length === pairsCount) {
+                    document.getElementById('match-submit-btn').classList.remove('hidden');
+                    window._currentMatches = matches;
+                }
+            };
+
+            const handleClick = (e) => {
+                const item = e.currentTarget;
+                const type = item.getAttribute('data-type');
+                const val = item.getAttribute('data-val');
+
+                if (item.classList.contains('matched-permanently')) return; 
+                
+                if (type === 'q') {
+                    qItems.forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedQ = val;
+                } else {
+                    aItems.forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedA = val;
+                }
+
+                if (selectedQ && selectedA) {
+                    matches[selectedQ] = selectedA;
+                    
+                    const qEl = Array.from(qItems).find(el => el.getAttribute('data-val') === selectedQ);
+                    const aEl = Array.from(aItems).find(el => el.getAttribute('data-val') === selectedA);
+                    
+                    if(qEl && aEl) {
+                        qEl.classList.remove('selected');
+                        qEl.classList.add('bg-green-800/60', 'border-green-400', 'text-green-200', 'matched-permanently', 'shadow-[0_0_10px_#4ade80]');
+                        aEl.classList.remove('selected');
+                        aEl.classList.add('bg-green-800/60', 'border-green-400', 'text-green-200', 'matched-permanently', 'shadow-[0_0_10px_#4ade80]');
+                    }
+                    
+                    selectedQ = null;
+                    selectedA = null;
+                    
+                    checkComplete();
+                }
+            };
+
+            qItems.forEach(item => item.addEventListener('click', handleClick));
+            aItems.forEach(item => item.addEventListener('click', handleClick));
+        };
+
+        window.submitMatchAnswer = () => {
+            state.kuisAnswers[state.kuisStep] = window._currentMatches;
+            state.kuisStep++;
+            app.navigate('kuis');
+        };
+
+        function renderKuisResult() {
+            let score = 0;
+            DB.kuis.forEach((q, i) => {
+                const userAns = state.kuisAnswers[i];
+                if (!userAns) return;
+                
+                if (q.type === 'mcq') {
+                    if (userAns === q.ans) score++;
+                } else if (q.type === 'complex') {
+                    if (Array.isArray(userAns) && userAns.length === q.ans.length && userAns.every(v => q.ans.includes(v))) {
+                        score++;
+                    }
+                } else if (q.type === 'match') {
+                    let correctPairs = 0;
+                    for (const [uq, ua] of Object.entries(userAns)) {
+                        const pair = q.pairs.find(p => p.q === uq);
+                        if (pair && pair.a === ua) correctPairs++;
+                    }
+                    if (correctPairs === q.pairs.length) score++;
+                }
+            });
+
+            const total = DB.kuis.length;
+            const percentage = Math.round((score / total) * 100);
+            
+            // Simpan ke LocalStorage (Offline)
+            const records = JSON.parse(localStorage.getItem('mathquest_records') || '[]');
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID') + ' ' + now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            
+            const newRecord = { 
+                date: dateStr, 
+                name: state.studentName || 'Siswa', 
+                class: state.studentClass || '-', 
+                score: percentage, 
+                rawScore: score, 
+                total: total 
+            };
+            records.push(newRecord);
+            localStorage.setItem('mathquest_records', JSON.stringify(records));
+
+            // ====================================================
+            // PROSES BACKUP KE SPREADSHEET MENGGUNAKAN APPSCRIPT
+            // ====================================================
+            let syncStatus = '';
+            if (CONFIG.APP_SCRIPT_URL && CONFIG.APP_SCRIPT_URL !== '') {
+                syncStatus = `<div class="mt-4 text-sm text-sky-400 font-bold animate-pulse"><i class="fas fa-sync fa-spin mr-2"></i>Menyinkronkan ke Database...</div>`;
+                
+                fetch(CONFIG.APP_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Penting agar tidak diblokir oleh CORS policy browser
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRecord)
+                }).then(() => {
+                    const statusEl = document.getElementById('sync-status');
+                    if(statusEl) statusEl.innerHTML = `<span class="text-green-400"><i class="fas fa-check-circle mr-1"></i> Data berhasil dibackup</span>`;
+                }).catch(err => {
+                    const statusEl = document.getElementById('sync-status');
+                    if(statusEl) statusEl.innerHTML = `<span class="text-red-400"><i class="fas fa-times-circle mr-1"></i> Gagal sinkronisasi</span>`;
+                    console.error("Sinkronisasi gagal:", err);
+                });
+            }
+            // ====================================================
+
+            let message = "";
+            let colorClass = "";
+            if(percentage >= 80) { message = "Luar Biasa!"; colorClass = "text-green-400"; }
+            else if(percentage >= 60) { message = "Kerja Bagus!"; colorClass = "text-yellow-400"; }
+            else { message = "Tetap Semangat Belajar!"; colorClass = "text-red-400"; }
+
+            appContainer.innerHTML = `
+                <div class="hologram-panel p-10 text-center max-w-lg w-full mx-auto relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
+                    
+                    <h2 class="text-3xl font-bold mb-1 text-sky-300 orbitron">HASIL KUIS</h2>
+                    <p class="text-base text-sky-200 font-bold mb-6 flex items-center justify-center gap-2">
+                        <i class="fas fa-user-graduate text-sky-400"></i>
+                        <span>${state.studentName || 'Siswa'}</span>
+                        <span class="bg-sky-900/60 px-2.5 py-0.5 rounded-full text-xs border border-sky-700">Kelas: ${state.studentClass || '-'}</span>
+                    </p>
+                    
+                    <div class="relative w-56 h-56 mx-auto mb-8 z-10">
+                        <svg viewBox="0 0 36 36" class="w-56 h-56 transform -rotate-90">
+                            <path class="text-slate-800" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="text-sky-400 timer-circle" stroke-dasharray="${percentage}, 100" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" stroke-linecap="round" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center flex-col">
+                            <span class="text-6xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">${percentage}%</span>
+                            <span class="text-lg text-sky-200 mt-2 bg-sky-900/50 px-3 py-1 rounded-full">Benar ${score} dari ${total}</span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold mb-6 ${colorClass}">${message}</h3>
+                    
+                    <div id="sync-status" class="mb-8 h-6">${syncStatus}</div>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 justify-center relative z-10">
+                        <button onclick="state.kuisStep=0; state.isKuisStarted=false; app.navigate('kuis')" class="btn-glow py-3 px-8 rounded-full text-lg"><i class="fas fa-redo mr-2"></i>ULANGI KUIS</button>
+                        <button onclick="state.kuisStep=0; state.isKuisStarted=false; app.navigate('dashboard')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white transition-all py-3 px-8 rounded-full text-lg shadow-lg"><i class="fas fa-home mr-2"></i>BERANDA</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        const clearBossTimer = () => {
+            if (state.bossTimer) { 
+                clearInterval(state.bossTimer); 
+                state.bossTimer = null; 
+            }
+        };
+
+        function renderGame() {
+            if (state.gameLives <= 0) {
+                clearBossTimer();
+                appContainer.innerHTML = `
+                    <div class="hologram-panel p-10 text-center max-w-md w-full mx-auto border-2 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]">
+                        <i class="fas fa-skull text-8xl text-red-500 mb-6 shaking drop-shadow-[0_0_15px_#ef4444]"></i>
+                        <h2 class="text-4xl font-bold text-red-400 mb-4 orbitron">MISI GAGAL</h2>
+                        <p class="mb-8 text-xl text-slate-300">Pesawat luar angkasamu hancur karena kalkulasi yang tidak tepat.</p>
+                        <button onclick="state.gameLives=3; state.gameMission=0; state.gameSubQuestion=0; app.navigate('game')" class="btn-danger py-4 px-8 rounded-full text-xl w-full mb-4">ULANGI MISI</button>
+                        <button onclick="state.gameLives=3; state.gameMission=0; state.gameSubQuestion=0; app.navigate('dashboard')" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white py-4 px-8 rounded-full text-lg w-full transition-all">KEMBALI KE MARKAS</button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (state.gameMission >= DB.game.length) {
+                clearBossTimer();
+                appContainer.innerHTML = `
+                    <div class="hologram-panel p-10 text-center max-w-lg w-full mx-auto border-2 border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.3)]">
+                        <i class="fas fa-trophy text-8xl text-yellow-400 mb-6 pulsing drop-shadow-[0_0_20px_#facc15]"></i>
+                        <h2 class="text-4xl font-bold text-yellow-300 mb-6 orbitron">MISI SELESAI!</h2>
+                        <p class="mb-10 text-2xl leading-relaxed">Selamat! Kamu berhasil menyelamatkan galaksi dengan kemampuan matematikamu yang luar biasa!</p>
+                        <button onclick="state.gameLives=3; state.gameMission=0; state.gameSubQuestion=0; app.navigate('dashboard')" class="btn-glow py-4 px-10 rounded-full text-xl w-full font-bold">KEMBALI KE MARKAS</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const m = DB.game[state.gameMission];
+            const currentQ = m.questions[state.gameSubQuestion];
+            const isBoss = m.isBoss || false;
+
+            let timerHTML = '';
+            if (isBoss) {
+                if (!state.bossTimer) {
+                    state.bossTimeLeft = 90; 
+                    state.bossTimer = setInterval(() => {
+                        state.bossTimeLeft--;
+                        const timerEl = document.getElementById('boss-timer-text');
+                        if (timerEl) timerEl.innerText = state.bossTimeLeft + 's';
+                        
+                        if(state.bossTimeLeft <= 10) {
+                            timerEl?.parentElement.classList.add('bg-red-600', 'text-white', 'shaking');
+                        }
+
+                        if (state.bossTimeLeft <= 0) {
+                            clearBossTimer();
+                            state.gameLives = 0;
+                            app.navigate('game'); 
+                        }
+                    }, 1000);
+                }
+                timerHTML = `
+                    <div class="absolute top-4 right-4 text-2xl font-bold text-red-400 font-mono pulsing border-2 border-red-500 p-2 px-4 rounded-lg bg-slate-900 shadow-[0_0_15px_#ef4444] z-20 transition-colors duration-300">
+                        <i class="fas fa-clock mr-2"></i> <span id="boss-timer-text">${state.bossTimeLeft}s</span>
+                    </div>
+                `;
+            } else {
+                clearBossTimer();
+            }
+
+            let livesHTML = Array(3).fill(0).map((_, i) => 
+                `<i class="fas fa-heart text-2xl md:text-3xl ${i < state.gameLives ? 'text-red-500 drop-shadow-[0_0_5px_#ef4444]' : 'text-slate-700'}"></i>`
+            ).join(' ');
+
+            let progressHTML = isBoss ? '' : `<div class="text-sky-400 font-bold mb-4 bg-sky-900/50 inline-block px-4 py-1 rounded-full border border-sky-700/50">Gelombang Serangan: ${state.gameSubQuestion + 1} / ${m.questions.length}</div>`;
+
+            appContainer.innerHTML = `
+                <div class="w-full max-w-4xl relative mx-auto">
+                    <div class="flex justify-between items-center mb-6 bg-slate-900/60 p-3 px-6 rounded-full border border-sky-900 backdrop-blur-sm relative z-10">
+                        <button onclick="confirmExitGame()" class="text-sky-400 hover:text-white transition font-bold text-lg flex items-center"><i class="fas fa-chevron-left mr-2"></i>Mundur</button>
+                        <div class="flex gap-3">
+                            ${livesHTML}
+                        </div>
+                    </div>
+
+                    <div class="hologram-panel p-8 md:p-12 w-full text-center relative border-2 ${isBoss ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]' : 'border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.2)]'}">
+                        ${timerHTML}
+                        
+                        <h2 class="text-2xl md:text-4xl font-bold mb-4 orbitron tracking-wider ${isBoss ? 'text-red-400' : 'text-sky-300'}">${m.title}</h2>
+                        ${progressHTML}
+                        
+                        <div class="mb-8 mt-2">
+                            ${isBoss ? getBossSVG() : getSantriSVG()}
+                        </div>
+
+                        <div class="bg-slate-900/80 p-6 rounded-xl border border-slate-700 mb-8 max-w-2xl mx-auto shadow-inner">
+                            <p class="text-xl md:text-2xl leading-relaxed text-white">${currentQ.q}</p>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row gap-4 justify-center items-center max-w-lg mx-auto">
+                            <input type="number" id="game-input" class="w-full bg-slate-950 border-2 ${isBoss ? 'border-red-500 focus:ring-red-500 focus:border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'border-sky-500 focus:ring-sky-500 focus:border-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.5)]'} rounded-xl p-4 text-4xl text-center text-white focus:outline-none focus:ring-2 font-mono transition-all" placeholder="???">
+                            <button onclick="checkGameAnswer('${currentQ.a}')" class="${isBoss ? 'btn-danger' : 'btn-glow'} py-4 px-10 rounded-xl text-2xl w-full md:w-auto font-bold whitespace-nowrap shadow-lg">TEMBAK!</button>
+                        </div>
+                        <div id="game-feedback" class="mt-6 text-2xl font-bold h-8 flex items-center justify-center"></div>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const input = document.getElementById('game-input');
+                if(input) input.focus();
+            }, 500);
+        }
+
+        window.confirmExitGame = () => {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
+            overlay.innerHTML = `
+                <div class="hologram-panel p-8 text-center max-w-md w-full border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+                    <i class="fas fa-exclamation-triangle text-6xl text-yellow-400 mb-6 pulsing"></i>
+                    <h3 class="text-2xl font-bold mb-4 orbitron text-white">Batalkan Misi?</h3>
+                    <p class="mb-8 text-slate-300 text-lg">Galaksi sedang dalam bahaya. Yakin ingin mundur sekarang?</p>
+                    <div class="flex gap-4">
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 py-3 rounded-xl border border-sky-500 hover:bg-sky-900 transition text-lg font-bold">Kembali Berjuang</button>
+                        <button onclick="this.closest('.fixed').remove(); clearBossTimer(); state.gameLives=3; state.gameMission=0; state.gameSubQuestion=0; app.navigate('dashboard')" class="flex-1 btn-danger py-3 rounded-xl text-lg font-bold">Mundur</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        };
+
+        window.checkGameAnswer = (correctAnswer) => {
+            const inputEl = document.getElementById('game-input');
+            const input = inputEl.value;
+            const feedback = document.getElementById('game-feedback');
+            
+            if(!input) return;
+
+            if (input === correctAnswer) {
+                feedback.innerHTML = '<span class="text-green-400 drop-shadow-[0_0_5px_#4ade80]"><i class="fas fa-bullseye mr-2"></i>Target Hancur!</span>';
+                inputEl.disabled = true;
+                
+                appContainer.classList.add('shaking');
+                setTimeout(() => appContainer.classList.remove('shaking'), 400);
+
+                setTimeout(() => {
+                    const m = DB.game[state.gameMission];
+                    state.gameSubQuestion++;
+                    
+                    if (state.gameSubQuestion >= m.questions.length) {
+                        state.gameMission++;
+                        state.gameSubQuestion = 0;
+                    }
+                    app.navigate('game');
+                }, 1200);
+            } else {
+                feedback.innerHTML = '<span class="text-red-400 drop-shadow-[0_0_5px_#ef4444]"><i class="fas fa-meteor mr-2"></i>Meleset! Terkena Serangan!</span>';
+                inputEl.value = '';
+                inputEl.focus();
+                
+                appContainer.classList.add('shaking');
+                const pnl = document.querySelector('.hologram-panel');
+                if(pnl) {
+                    pnl.style.borderColor = '#ef4444';
+                    setTimeout(() => pnl.style.borderColor = '', 500);
+                }
+                
+                setTimeout(() => appContainer.classList.remove('shaking'), 400);
+                
+                state.gameLives--;
+                
+                setTimeout(() => {
+                    if (state.gameLives <= 0) {
+                        app.navigate('game');
+                    } else {
+                        app.render(); // Re-render to update hearts visually
+                    }
+                }, 1000);
+            }
+        };
+
+        function renderAdminLogin() {
+            appContainer.innerHTML = `
+                <div class="hologram-panel p-10 max-w-sm w-full text-center mx-auto border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                    <div class="w-20 h-20 bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-purple-500 shadow-[0_0_15px_#a855f7]">
+                        <i class="fas fa-user-shield text-4xl text-purple-300"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-8 orbitron text-purple-200">Akses Guru</h2>
+                    <input type="password" id="admin-pass" class="w-full bg-slate-950 border-2 border-purple-500 rounded-xl p-4 text-center text-2xl text-white focus:outline-none focus:border-purple-300 focus:shadow-[0_0_15px_#a855f7] mb-4 tracking-widest" placeholder="PIN">
+                    <p id="admin-error" class="text-red-400 font-bold mb-4 hidden h-6"><i class="fas fa-times-circle mr-1"></i> PIN Tidak Valid</p>
+                    <button onclick="checkAdminPass()" class="btn-glow py-3 px-6 rounded-xl w-full text-xl mb-4" style="background: linear-gradient(135deg, #4c1d95, #7e22ce); border-color: #a855f7;">AUTENTIKASI</button>
+                    <button onclick="app.navigate('dashboard')" class="text-slate-400 mt-2 text-sm hover:text-white transition underline">Kembali ke Beranda</button>
+                </div>
+            `;
+            setTimeout(() => {
+                const input = document.getElementById('admin-pass');
+                if(input) input.focus();
+            }, 500);
+        }
+
+        window.checkAdminPass = () => {
+            const pass = document.getElementById('admin-pass').value;
+            const errorMsg = document.getElementById('admin-error');
+            if (pass === '1234') { // Default PIN
+                state.adminTab = 'history';
+                app.navigate('admin-panel');
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('admin-pass').value = '';
+                setTimeout(() => errorMsg.classList.add('hidden'), 2000);
+            }
+        }
+
+        window.setAdminTab = (tab) => {
+            state.adminTab = tab;
+            app.render();
+        }
+
+        window.showAdminToast = (msg) => {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-[0_0_15px_#4ade80] z-50 transition-opacity duration-300 font-bold orbitron text-center whitespace-nowrap border border-green-300';
+            toast.innerHTML = `<i class="fas fa-check-circle mr-2"></i> ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+        };
+
+        window.resetDefaultDB = () => {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
+            overlay.innerHTML = `
+                <div class="hologram-panel p-8 text-center max-w-sm w-full border-red-500">
+                    <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4 pulsing"></i>
+                    <h3 class="text-xl font-bold mb-4 text-white">Reset Soal ke Bawaan?</h3>
+                    <p class="mb-6 text-slate-300">Semua perubahan pada soal Kuis dan Game akan hilang secara permanen.</p>
+                    <div class="flex gap-4">
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2 rounded-lg border border-slate-500 hover:bg-slate-800 transition">Batal</button>
+                        <button onclick="localStorage.removeItem('mathquest_db'); DB = JSON.parse(JSON.stringify(defaultDB)); this.closest('.fixed').remove(); showAdminToast('Soal direset ke bawaan!'); app.render();" class="flex-1 btn-danger py-2 rounded-lg">Ya, Reset</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        };
+
+        function renderAdminPanel() {
+            const records = JSON.parse(localStorage.getItem('mathquest_records') || '[]');
+            
+            let tabContent = '';
+            
+            if (state.adminTab === 'history') {
+                let tableHTML = records.length === 0 ? 
+                    '<div class="text-center text-slate-400 py-8 italic">Belum ada data riwayat kuis tersimpan.</div>' : 
+                    records.map((r, i) => `
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-sky-800/50 py-3 hover:bg-sky-900/20 px-2 rounded transition gap-2">
+                            <div>
+                                <div class="text-white font-bold text-base flex items-center gap-2">
+                                    <i class="fas fa-user-graduate text-sky-400"></i>
+                                    <span>${r.name || 'Siswa Tanpa Nama'}</span>
+                                    <span class="text-xs bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5 rounded-full">Kelas: ${r.class || '-'}</span>
+                                </div>
+                                <span class="text-slate-400 text-xs"><i class="far fa-calendar-alt mr-1"></i>${r.date}</span>
+                            </div>
+                            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                                <span class="text-sm text-slate-400">Skor: ${r.rawScore}/${r.total}</span>
+                                <span class="font-bold text-lg bg-slate-900 px-3 py-1 rounded-full border ${r.score >= 80 ? 'text-green-400 border-green-800' : (r.score >= 60 ? 'text-yellow-400 border-yellow-800' : 'text-red-400 border-red-800')}">${r.score}%</span>
+                            </div>
+                        </div>
+                    `).reverse().join('');
+                
+                tabContent = `
+                    <div class="flex justify-between items-center border-b border-purple-700 pb-4 mb-4">
+                        <h3 class="text-xl md:text-2xl font-bold text-white"><i class="fas fa-chart-bar mr-2 text-sky-400"></i>Riwayat Evaluasi Kuis</h3>
+                        <span class="bg-purple-900/50 text-purple-200 px-3 py-1 rounded-full text-sm border border-purple-600">${records.length} Entri</span>
+                    </div>
+                    <div class="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        ${tableHTML}
+                    </div>
+                    ${records.length > 0 ? `
+                    <div class="mt-6 flex justify-end border-t border-purple-800/50 pt-4">
+                        <button onclick="confirmClearData()" class="btn-danger py-2 px-6 rounded-lg text-sm flex items-center"><i class="fas fa-trash-alt mr-2"></i>Hapus Semua Riwayat</button>
+                    </div>
+                    ` : ''}
+                `;
+            } else if (state.adminTab === 'kuis') {
+                let kuisFormHTML = DB.kuis.map((q, i) => {
+                    let innerInputs = '';
+                    if (q.type === 'mcq') {
+                        innerInputs = `
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                ${q.options.map((opt, j) => `<input type="text" id="kuis_${i}_opt_${j}" value="${opt}" class="w-full bg-slate-900 border border-purple-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-300" placeholder="Opsi ${j+1}">`).join('')}
+                            </div>
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="text-sm text-slate-400 whitespace-nowrap">Jawaban Benar:</span>
+                                <input type="text" id="kuis_${i}_ans" value="${q.ans}" class="flex-1 bg-slate-900 border border-green-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-green-400">
+                            </div>
+                        `;
+                    } else if (q.type === 'complex') {
+                        innerInputs = `
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                ${q.options.map((opt, j) => `<input type="text" id="kuis_${i}_opt_${j}" value="${opt}" class="w-full bg-slate-900 border border-purple-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-300" placeholder="Opsi ${j+1}">`).join('')}
+                            </div>
+                            <div class="mt-2 flex flex-col md:flex-row items-start md:items-center gap-2">
+                                <span class="text-sm text-slate-400 whitespace-nowrap">Jawaban Benar (Pilih 2):</span>
+                                <input type="text" id="kuis_${i}_ans_0" value="${q.ans[0]}" class="w-full md:flex-1 bg-slate-900 border border-green-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-green-400">
+                                <input type="text" id="kuis_${i}_ans_1" value="${q.ans[1]}" class="w-full md:flex-1 bg-slate-900 border border-green-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-green-400">
+                            </div>
+                        `;
+                    } else if (q.type === 'match') {
+                        innerInputs = `
+                            <div class="flex flex-col gap-2 mt-2">
+                                ${q.pairs.map((pair, j) => `
+                                    <div class="flex gap-2">
+                                        <input type="text" id="kuis_${i}_pair_${j}_q" value="${pair.q}" class="w-1/2 bg-slate-900 border border-purple-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-300" placeholder="Soal ${j+1}">
+                                        <input type="text" id="kuis_${i}_pair_${j}_a" value="${pair.a}" class="w-1/2 bg-slate-900 border border-green-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-green-400" placeholder="Pasangan ${j+1}">
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                    <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-600 mb-4 hover:border-purple-500/50 transition">
+                        <div class="text-xs text-sky-400 mb-2 font-bold uppercase">Soal ${i+1} <span class="bg-sky-900/50 px-2 py-0.5 rounded text-sky-200 ml-1 border border-sky-800">${q.type}</span></div>
+                        <textarea id="kuis_${i}_q" class="w-full bg-slate-900 border border-purple-500 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-300 shadow-inner" rows="2">${q.q}</textarea>
+                        ${innerInputs}
+                    </div>
+                    `;
+                }).join('');
+
+                tabContent = `
+                    <div class="flex justify-between items-center border-b border-purple-700 pb-4 mb-4">
+                        <h3 class="text-xl md:text-2xl font-bold text-white"><i class="fas fa-tasks mr-2 text-sky-400"></i>Editor Soal Kuis</h3>
+                    </div>
+                    <div class="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        ${kuisFormHTML}
+                    </div>
+                    <div class="mt-6 flex flex-col-reverse md:flex-row gap-4 justify-between border-t border-purple-800/50 pt-4">
+                        <button onclick="resetDefaultDB()" class="text-red-400 hover:text-red-300 text-sm py-2 px-4 border border-red-500/50 rounded-lg whitespace-nowrap"><i class="fas fa-undo mr-1"></i> Reset Ke Bawaan</button>
+                        <button onclick="window.saveAdminKuis()" class="btn-glow py-2 px-8 rounded-lg text-sm flex items-center justify-center font-bold" style="background: linear-gradient(135deg, #16a34a, #15803d); border-color: #4ade80;"><i class="fas fa-save mr-2"></i>Simpan Kuis</button>
+                    </div>
+                `;
+            } else if (state.adminTab === 'game') {
+                let gameFormHTML = DB.game.map((m, mIdx) => {
+                    let qHTML = m.questions.map((q, qIdx) => `
+                        <div class="flex flex-col gap-2 mb-3 bg-slate-900/80 p-3 rounded-lg border border-slate-700">
+                            <span class="text-xs text-slate-400 font-bold">Gelombang Serangan ${qIdx+1}</span>
+                            <textarea id="game_${mIdx}_${qIdx}_q" class="w-full bg-slate-950 border border-purple-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-purple-300 shadow-inner" rows="2">${q.q}</textarea>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs text-slate-400 whitespace-nowrap">Jawaban (Angka):</span>
+                                <input type="number" id="game_${mIdx}_${qIdx}_a" value="${q.a}" class="w-full md:w-1/2 bg-slate-950 border border-green-500/50 rounded p-2 text-sm text-white focus:outline-none focus:border-green-400 text-center font-mono font-bold text-green-300">
+                            </div>
+                        </div>
+                    `).join('');
+
+                    return `
+                    <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-600 mb-6 hover:border-purple-500/50 transition">
+                        <div class="text-sm text-sky-400 mb-3 font-bold uppercase border-b border-slate-700 pb-2">${m.title} ${m.isBoss ? '<span class="text-red-400 ml-2 animate-pulse"><i class="fas fa-skull"></i> BOSS</span>' : ''}</div>
+                        ${qHTML}
+                    </div>
+                    `;
+                }).join('');
+
+                tabContent = `
+                    <div class="flex justify-between items-center border-b border-purple-700 pb-4 mb-4">
+                        <h3 class="text-xl md:text-2xl font-bold text-white"><i class="fas fa-gamepad mr-2 text-sky-400"></i>Editor Misi Game</h3>
+                    </div>
+                    <div class="max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                        ${gameFormHTML}
+                    </div>
+                    <div class="mt-6 flex flex-col-reverse md:flex-row gap-4 justify-between border-t border-purple-800/50 pt-4">
+                        <button onclick="resetDefaultDB()" class="text-red-400 hover:text-red-300 text-sm py-2 px-4 border border-red-500/50 rounded-lg whitespace-nowrap"><i class="fas fa-undo mr-1"></i> Reset Ke Bawaan</button>
+                        <button onclick="window.saveAdminGame()" class="btn-glow py-2 px-8 rounded-lg text-sm flex items-center justify-center font-bold" style="background: linear-gradient(135deg, #16a34a, #15803d); border-color: #4ade80;"><i class="fas fa-save mr-2"></i>Simpan Misi Game</button>
+                    </div>
+                `;
+            }
+
+            appContainer.innerHTML = `
+                <div class="hologram-panel p-4 md:p-8 max-w-4xl w-full relative mx-auto border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.2)] mt-4 md:mt-0 max-h-screen flex flex-col">
+                    <button onclick="app.navigate('dashboard')" class="absolute top-4 right-4 md:top-6 md:right-6 text-slate-400 hover:text-white transition bg-slate-800 w-10 h-10 rounded-full flex items-center justify-center border border-slate-600 z-10 hover:shadow-[0_0_10px_rgba(255,255,255,0.5)]"><i class="fas fa-times text-xl"></i></button>
+                    
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 text-purple-300 orbitron flex items-center mt-2 md:mt-0"><i class="fas fa-user-cog mr-3 md:mr-4 text-purple-400"></i>Panel Admin</h2>
+                    
+                    <!-- TAB NAVIGATION -->
+                    <div class="flex gap-2 mb-4 bg-slate-900/50 p-1.5 rounded-lg border border-purple-900/50 overflow-x-auto custom-scrollbar flex-shrink-0">
+                        <button onclick="setAdminTab('history')" class="flex-1 min-w-[100px] py-2.5 text-sm md:text-base rounded-md transition-all font-bold ${state.adminTab === 'history' ? 'bg-purple-600 text-white shadow-[0_0_10px_#9333ea]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">Riwayat Kuis</button>
+                        <button onclick="setAdminTab('kuis')" class="flex-1 min-w-[100px] py-2.5 text-sm md:text-base rounded-md transition-all font-bold ${state.adminTab === 'kuis' ? 'bg-purple-600 text-white shadow-[0_0_10px_#9333ea]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">Editor Kuis</button>
+                        <button onclick="setAdminTab('game')" class="flex-1 min-w-[100px] py-2.5 text-sm md:text-base rounded-md transition-all font-bold ${state.adminTab === 'game' ? 'bg-purple-600 text-white shadow-[0_0_10px_#9333ea]' : 'text-slate-400 hover:text-white hover:bg-slate-800'}">Editor Game</button>
+                    </div>
+
+                    <div class="bg-slate-900/70 p-4 md:p-6 rounded-xl border border-purple-800 shadow-inner flex-1 flex flex-col min-h-0">
+                        ${tabContent}
+                    </div>
+                </div>
+            `;
+        }
+
+        window.saveAdminKuis = () => {
+            try {
+                DB.kuis.forEach((q, i) => {
+                    q.q = document.getElementById(`kuis_${i}_q`).value;
+                    if(q.type === 'mcq') {
+                        for(let j=0; j<4; j++) q.options[j] = document.getElementById(`kuis_${i}_opt_${j}`).value;
+                        q.ans = document.getElementById(`kuis_${i}_ans`).value;
+                    } else if(q.type === 'complex') {
+                        for(let j=0; j<4; j++) q.options[j] = document.getElementById(`kuis_${i}_opt_${j}`).value;
+                        q.ans[0] = document.getElementById(`kuis_${i}_ans_0`).value;
+                        q.ans[1] = document.getElementById(`kuis_${i}_ans_1`).value;
+                    } else if(q.type === 'match') {
+                        for(let j=0; j<3; j++) {
+                            q.pairs[j].q = document.getElementById(`kuis_${i}_pair_${j}_q`).value;
+                            q.pairs[j].a = document.getElementById(`kuis_${i}_pair_${j}_a`).value;
+                        }
+                    }
+                });
+                localStorage.setItem('mathquest_db', JSON.stringify(DB));
+                showAdminToast('Soal Kuis Berhasil Diperbarui!');
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        window.saveAdminGame = () => {
+            try {
+                DB.game.forEach((m, mIdx) => {
+                    m.questions.forEach((q, qIdx) => {
+                        q.q = document.getElementById(`game_${mIdx}_${qIdx}_q`).value;
+                        q.a = document.getElementById(`game_${mIdx}_${qIdx}_a`).value;
+                    });
+                });
+                localStorage.setItem('mathquest_db', JSON.stringify(DB));
+                showAdminToast('Misi Game Berhasil Diperbarui!');
+            } catch(e) {
+                console.error(e);
+            }
+        };
+        
+        window.confirmClearData = () => {
+             const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm';
+            overlay.innerHTML = `
+                <div class="hologram-panel p-8 text-center max-w-sm w-full border-red-500">
+                    <i class="fas fa-exclamation-circle text-5xl text-red-500 mb-4"></i>
+                    <h3 class="text-xl font-bold mb-4 text-white">Hapus Data?</h3>
+                    <p class="mb-6 text-slate-300">Semua riwayat nilai akan dihapus permanen.</p>
+                    <div class="flex gap-4">
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 py-2 rounded-lg border border-slate-500 hover:bg-slate-800 transition">Batal</button>
+                        <button onclick="localStorage.removeItem('mathquest_records'); this.closest('.fixed').remove(); app.render();" class="flex-1 btn-danger py-2 rounded-lg">Ya, Hapus</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        };
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        window.onload = () => {
+            app.navigate('dashboard');
+        };
+    </script>
+</body>
+</html>
